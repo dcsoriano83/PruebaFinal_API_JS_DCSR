@@ -1,0 +1,113 @@
+      html, body { 
+        height: 100%; width: 100%; margin: 0; 
+      } 
+      body{
+        background-color:white; overflow:hidden; 
+        font-family: "Trebuchet MS"; 
+      }
+       #map {
+       margin: 5px;
+        border:solid 4px #224a54;
+        -moz-border-radius: 4px;        
+      }
+      #map_root{
+        width: 100% !important;
+        height: 100% !important;
+      }
+      #header {
+        background-image: url(../images/banner.jpg); background-repeat: repeat-x;
+        margin: 2px;
+        border: solid 4px #224a54;
+        color:white; font-size:18pt; 
+        text-align:left; font-weight:bold; height:70px;
+      }
+      #subheader {
+        font-size:small;
+        color:white;
+        padding-left:20px;
+      }
+      #rightPane{
+        background-color:white;
+        color:#3f3f3f;
+        border: solid 2px #224a54;
+        width:20%;
+      }
+      #leftPane{
+        margin: 5px;
+        padding:2px;
+        background-color:white;
+        color:#3f3f3f;
+        border: solid 2px #224a54;
+        width:20%;
+     }
+      #footer {
+        margin: 2px;
+        border: solid 2px #224a54;
+        background-color:#ecefe4;color:#3f3f3f;
+       font-size:10pt; text-align:center; height:40px;
+      }
+      .dijitTabInnerDiv{
+        background-color:#ecefe4;
+      }
+      #tabs{
+        padding:5px;
+      }
+      #homeButton {
+        position: absolute;
+        top: 95px;
+        left: 25px;
+        z-index: 50;
+	background-color: rgb(14, 187, 217);
+      }
+      #basemapGallery {
+        position: absolute;
+        top: 10px;
+        right: 20px;
+        z-index: 50;
+        color:rgb(67, 160, 175);
+        background-color:rgb(231, 238, 239);
+      } 
+     #overview {
+        position: absolute;
+        bottom: 105px;
+        left: 20px;
+        z-index: 50;          
+     }
+     #gridDiv{
+        position: absoluta;
+        top: 60px;
+        font-size:small;
+        color:#0E8498;
+        border-radius: 4px;
+        border: #0E8498;
+        background-color: rgb(231, 238, 239);    
+     }
+     #pintaYQuery {
+        position: relative;
+        top: 30px;      
+        font-size:small;
+        color:white;
+        border-radius: 4px;
+        border: #0E8498;
+        background-color: rgb(67, 160, 175);
+     }
+     #clearSelection {
+        position: relative;
+        top: 30px;      
+        font-size:small;
+        color:white;
+        border-radius: 4px;
+        border: #0E8498;
+        background-color: rgb(67, 160, 175);
+     }
+     #progButtonNode {
+        font-size:small;
+        color:white;
+        border-radius: 4px;
+        border: #0E8498;
+        background-color: rgb(67, 160, 175);
+     }
+
+
+
+  
