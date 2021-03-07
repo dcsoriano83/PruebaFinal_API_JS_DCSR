@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <!--The viewport meta tag is used to improve the presentation and behavior of the samples
+      on iOS devices-->
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <title></title>
+
+    <link rel="stylesheet" href="http://js.arcgis.com/3.8/js/dojo/dijit/themes/claro/claro.css">
+    <link rel="stylesheet" href="https://js.arcgis.com/3.35/esri/css/esri.css">
+    <link rel="stylesheet" href="css/layout.css" />
+
+    <script>var dojoConfig = { parseOnLoad: true };</script>
+    <script src="https://js.arcgis.com/3.35"></script>
+
+    <style>
+        #search {
+            display: block;
+            position: absolute;
+            z-index: 2;
+            top: 30px;
+            left: 70px;
+        }
+    </style>
+    <script>
+        var map;
+        var tb;
+        require(["esri/map",
+            "esri/layers/ArcGISDynamicMapServiceLayer",
+            "esri/layers/FeatureLayer",
+            "esri/geometry/Extent",
+            "esri/toolbars/draw",
+            "esri/graphic",
+            "esri/tasks/query",
+
+            "esri/dijit/HomeButton",
+            "esri/dijit/Legend",
+            "esri/dijit/Search",
+            "esri/dijit/BasemapGallery",
+            "esri/dijit/OverviewMap",
+            "esri/dijit/Scalebar",
+            "esri/dijit/PopupTemplate",
+
+            "esri/symbols/SimpleFillSymbol",
+            "esri/symbols/SimpleLineSymbol",
+            "esri/symbols/SimpleMarkerSymbol",
+            "esri/renderers/SimpleRenderer",
+
+            "dojo/ready",
+            "dojo/parser",
+            "dojo/on",
+            "dojo/dom",
+            "dojo/dom-construct",
+
+            "dojo/store/Memory",
+            "dojo/date/locale",
+
+            "dojo/_base/Color",
+            "dojo/_base/declare",
+            "dojo/_base/array",
+
+            "dgrid/OnDemandGrid",
+            "dgrid/Selection",
+
+            "dijit/TitlePane",
+            "dijit/layout/TabContainer",
+            "dijit/layout/ContentPane",
+            "dijit/layout/BorderContainer",
+            "dojo/domReady!"],
+            function (
+                Map, ArcGISDynamicMapServiceLayer, FeatureLayer, Extent, Draw, Graphic, Query,
+                HomeButton, Legend, Search, BasemapGallery, OverviewMap, Scalebar, PopupTemplate,
+                SimpleFillSymbol, SimpleLineSymbol, SimpleMarkerSymbol, SimpleRenderer,
+                ready, parser, on, dom, domConstruct,
+                Memory, locale,
+                Color, declare, array,
+                Grid, Selection,
+                TitlePane, ContentPane, BorderContainer
+            ) {
+
+                /* 
+                PASO 2
+                Definir la extensión inicial del mapa               
+                */
+                var mapExtent = new Extent({
+
+                    "xmin": -20599541.31876346,
+                    "ymin": 3546903.8380501526,
+                    "xmax": 2451420.4271344435,
+                    "ymax": 14407076.816805106,
+                    "spatialReference": {
+                        "wkid": 102100
+                    }
+                });
+
+                map = new Map("map", {
+                    basemap: "topo",
+                    extent: mapExtent //nueva extensión inicial del mapa
+                });
+
+                /* 
+                PASO 3
+                Crear un botón con la extensión de inicio: HomeButton            
+                */
+                var hbExtent = new Extent({ //extensión botón de inicio
+
+                    "xmin": -24043488.06517945,
+                    "ymin": 2069528.9553546594,
+                    "xmax": -992526.3192815436,
+                    "ymax": 12929701.934109611,
+                    "spatialReference": {
+                        "wkid": 102100
+                    }
+                });
+
+                var homeButton = new HomeButton({
+                    map: map,
+                    extent: hbExtent
+                }, "homeButton");//div del html al que hace referencia
+                homeButton.startup();// Método que pone en funcionamiento el widget
+
+                /* 
+                PASO 13
+                Implementación del botón progButtonNode
+                */
+                var citiesInfoTemplate = "Estado: {st}</br>Población: {pop2000}";
+                var citiesPopUp = new PopupTemplate({
+                    title: "Ciudad: {areaname}",
+                    description: citiesInfoTemplate
+                });
+
+                var statesInfoTemplate = "Población: {pop2000}</br>Población por milla: {pop00_sqmi}</br> Area: {ss6.gdb.States.area}";
+                var statesPopUp = new PopupTemplate({
+                    title: "Nombre: {state_name}",
+                    description: statesInfoTemplate
+                });
+
+                /* 
+                PASO 1
+                Cargar las capas del MapServer: http://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/                
+                */
+
+                //Capa que contiene las carreteras principales y los Condados 
+                var lyrUSA = new ArcGISDynamicMapServiceLayer("http://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/", {
+                    opacity: 0.5 //Transparencia
+                });
+                lyrUSA.setVisibleLayers([1, 3]);
+
+                //Capa que contiene las ciudades 
+                var outFieldsCities = ["st", "areaname", "pop2000"]; //Campos que contendrá la capa
+                var lyrCities = new FeatureLayer("http://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/0", {
+                    outFields: outFieldsCities,
+                    infoTemplate: citiesPopUp
+                });
+                //Capa que contiene los estados
+                var outFieldsStates = ["state_name", "pop2000", "pop00_sqmi", "ss6.gdb.States.area"]; //Campos que contendrá la capa
+                var lyrStates = new FeatureLayer("http://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/2", {
+                    outFields: outFieldsStates,
+                    infoTemplate: statesPopUp,
+                });
+
+                /* 
+                PASO 4
+                Se añaden las capas al mapa         
+                */
+                map.on("load", function (evt) {
+                    map.resize();
+                    map.reposition();
+                    map.addLayer(lyrUSA);
+                    map.addLayer(lyrCities);
+                    map.addLayer(lyrStates);
+                });
+
+                /* 
+                PASO 5
+                Widget Legend         
+                */
+                var legendDijit = new Legend({
+                    map: map,
+                    arrangement: Legend.ALIGN_LEFT //Especifica la alineación de la leyenda dentro del elemento HTML donde se representa la leyenda
+                }, "legendDiv");
+                legendDijit.startup();
+
+                /* 
+                PASO 6
+                Widget Search               
+                */
+                var searchDijit = new Search({
+                    map: map
+                }, "search");
+                searchDijit.startup();
+
+                /* 
+                PASO 7
+                Widget BasemapGallery     
+                */
+                var bmGalleryDijit = new BasemapGallery({
+                    showArcGISBasemaps: true, //Se escoge true para consultar a ArcGIS.com para recuperar los mapas base disponibles. 
+                    map: map
+                }, "basemapGallery");
+                bmGalleryDijit.startup();
+
+                /* 
+                PASO 8
+                Widget OverviewMap     
+                */
+                var overviewMapDijit = new OverviewMap({
+                    map: map,
+                    color: "#edca07", //color del área del extent
+                    expandFactor: 1, //La relación entre el tamaño del mapa y el rectángulo de extensión del mapa auxiliar
+                    height: 100,
+                    width: 180,
+                    visible: true
+                }, "overview");
+                overviewMapDijit.startup();
+
+                /* 
+                PASO 9
+                Widget Scalebar     
+                */
+                var ScalebarDijit = new Scalebar({
+                    map: map,
+                    scalebarUnit: "dual",
+                    attachTo: "bottom-center"
+                });
+
+                /* 
+                PASO 10
+                Implementación del botón pintaYQuery     
+                */
+
+                on(dojo.byId("pintaYQuery"), "click", fPintaYQuery); //le pasamos el evento click, para que una vez se haga click en el botón pintaQuery, se llame a la función fPintaYQuery.
+
+                function fPintaYQuery() {
+
+                    //se crea la barra de herramientas y se asocia al mapa
+                    tb = new Draw(map);
+
+                    //con el método on, el evento draw-complete (porque draw-end está obsoleto) hace que una vez se haya creado el polígono, se llama a la función displayPolygon
+                    tb.on("draw-complete", displayPolygon);
+
+                    //activar la barra de herramientas pasándole la geometría de polígono
+                    tb.activate(Draw.POLYGON);
+                }
+
+                function displayPolygon(evt) {
+
+                    //Crea la geometría a partir de un evento
+                    var geometryInput = evt.geometry;
+
+                    // Define la simbología del polígono creado
+                    var tbSymbolCities = new SimpleFillSymbol(SimpleFillSymbol.STYLE_SOLID, new SimpleLineSymbol(SimpleLineSymbol.STYLE_DASHDOT, new Color([255, 255, 0]), 2), new Color([255, 255, 0, 0.2]));
+
+                    map.graphics.clear();// Limpia la capa
+
+                    //Crea la capa gráfica con el polígono
+                    var graphicPolygon = new Graphic(geometryInput, tbSymbolCities);
+
+                    //Añade el gráfico al mapa
+                    map.graphics.add(graphicPolygon);
+
+                    //Llama al siguiente método
+                    selectCities(geometryInput);
+                }
+
+                function selectCities(geometryInput) {
+
+                    // Define la simbología para las entidades seleccionadas 
+                    var symbolSelected = new SimpleMarkerSymbol({
+                        "type": "esriSMS",
+                        "style": "esriSMSCircle",
+                        "color": [255, 115, 0, 128],
+                        "size": 6,
+                        "outline": {
+                            "color": [255, 0, 0, 214],
+                            "width": 1
+                        }
+                    });
+                    
+                    //se aplica la simbología a la capa
+                    lyrCities.setSelectionSymbol(symbolSelected);
+                    
+                    //Se inicializa la consulta
+                    var queryCities = new Query();
+                    queryCities.geometry = geometryInput;
+                    
+                    //Una vez finalice el evento de selección, se llamará al método populateGrid
+                    lyrCities.on("selection-complete", populateGrid);
+                    
+                    //Se llama al método selectFeatures de la clase FeatureLayer
+                    lyrCities.selectFeatures(queryCities, FeatureLayer.SELECTION_NEW);
+
+                    //Hace zoom una vez realizada la selección
+                    lyrCities.queryFeatures(queryCities, function (result) {
+                        var extent = esri.graphicsExtent(result.features);
+                        map.setExtent(extent, true);
+                    });
+                }
+                /* 
+                PASO 11
+                Implementación de la función populateGrid que hará que se muestren los atributos de las ciudades seleccionadas en una tabla
+                */
+                function populateGrid(results) {
+
+                    var dataCities = array.map(results.features, function (feature) {
+                        return {
+                             //Definir los atributos de la tabla
+                            "st": feature.attributes[outFieldsCities[0]],
+                            "areaname": feature.attributes[outFieldsCities[1]],
+                            "pop2000": feature.attributes[outFieldsCities[2]],
+                        }
+                    });
+
+                    // Se pasan los datos a la tabla
+                    var memStore = new Memory({
+                        data: dataCities
+                    });
+                    gridCities.set("store", memStore);
+                }
+                var gridCities = new (declare([Grid, Selection]))({
+                    bufferRows: Infinity,
+                    columns: {
+                        st: "Estado",
+                        areaname: "Ciudad",
+                        pop2000: "Población"
+                    }
+                }, "gridDiv");
+
+                /* 
+                PASO 12
+                Implementación del botón clearSelection
+                */
+                on(dojo.byId("clearSelection"), "click", fCleanSelection);
+                function fCleanSelection() {
+
+                    lyrCities.clearSelection();
+                    map.graphics.clear();
+                    tb.deactivate();
+                }
+
+                /* 
+                PASO 13
+                Implementación del botón progButtonNode
+                */
+                on(dojo.byId("progButtonNode"), "click", fQueryEstados);
+
+                function fQueryEstados() {
+                    map.graphics.clear();
+
+                    //Se crea una variable que almacente el texto introducido
+                    var stateName = dtb.value
+
+                    var tbSymbolStates = new SimpleFillSymbol(SimpleFillSymbol.STYLE_SOLID, new SimpleLineSymbol(SimpleLineSymbol.STYLE_DASHDOT, new Color([255, 255, 0]), 2), new Color([255, 255, 0, 0.2]));
+                   
+                    //Se define la expresión de consulta
+                    var selectionStates = lyrStates.setDefinitionExpression("state_name = '" + stateName + "'");
+                    
+                    lyrStates.setRenderer(new SimpleRenderer(tbSymbolStates));
+                    var queryStates = new Query();
+                    queryStates = selectionStates;
+                    lyrStates.queryFeatures(queryStates, function (result) {
+                        var extent = esri.graphicsExtent(result.features);
+                        map.setExtent(extent, true);
+                    });
+                }
+            });
+    </script>
+
+</head>
+
+<body class="claro">
+    <div id="mainWindow" data-dojo-type="dijit.layout.BorderContainer"
+        data-dojo-props="design:'headline', gutters:false" style="width:100%; height:100%;">
+
+        <div id="header" data-dojo-type="dijit.layout.ContentPane" data-dojo-props="region:'top'">
+
+            Master GIS ESRI España
+            <div id="subheader">Dolores Carmen Soriano Rodríguez</div>
+
+        </div>
+        <div data-dojo-type="dijit.layout.ContentPane" id="leftPane" data-dojo-props="region:'left'">
+            <div data-dojo-type="dijit.layout.TabContainer">
+
+                <div data-dojo-type="dijit.layout.ContentPane" data-dojo-props="title:'Leyenda', selected:true">
+                    <div id="legendDiv"></div>
+                </div>
+
+                <div data-dojo-type="dijit.layout.ContentPane" data-dojo-props="title:'Tareas'">
+                    Operaciones<br>
+                    <button id="pintaYQuery" type="button">Seleccionar ciudades</button>
+                    <button id="clearSelection" type="button">Limpiar selección</button>
+                    <div id="gridDiv"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="map" data-dojo-type="dijit.layout.ContentPane" data-dojo-props="region:'center'">
+
+            <div id="homeButton"></div>
+            <div id="search"></div>
+            <div id="overview"></div>
+            <div id="scaleBar"></div>
+            <div style="position:absolute; right:20px; top:10px; z-Index:999;">
+                <div data-dojo-type="dijit.TitlePane"
+                    data-dojo-props="title:'Switch Basemap', closable:false, open:false">
+                    <div data-dojo-type="dijit.layout.ContentPane" style="width:345px; height:280px;">
+                        <div id="basemapGallery"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="footer" data-dojo-type="dijit.layout.ContentPane" data-dojo-props="region:'bottom'">
+
+            <label for="dtb">Introduzca el nombre de un estado:</label> <input id="dtb"
+                data-dojo-type="dijit/form/TextBox" value="Washington" />
+            <button id="progButtonNode" type="button">Ir al estado</button>
+        </div>
+
+    </div>
+</body>
+
+</html>
